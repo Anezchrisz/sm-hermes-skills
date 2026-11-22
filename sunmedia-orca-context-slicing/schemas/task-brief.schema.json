@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sunmedia.internal/schemas/task-brief.schema.json",
+  "title": "Sun Media Task_Brief",
+  "description": "Skema untuk Task_Brief yang dipotong Orca dari Master_Brief [LOCKED_EXECUTION] untuk tiap agent Fase 2 (Noza/Arka/Weba/Yuka).",
+  "type": "object",
+  "required": [
+    "client_slug",
+    "agent",
+    "brief_version",
+    "date",
+    "status",
+    "source_master_brief_version",
+    "core_value_proposition",
+    "primary_offer",
+    "language_matrix"
+  ],
+  "properties": {
+    "client_slug": {
+      "type": "string",
+      "description": "Harus persis sama dengan nama folder klien, format <YYYY-MM>_<ClientSlug>.",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])_[A-Za-z0-9]+$"
+    },
+    "agent": {
+      "type": "string",
+      "description": "Agent Fase 2 pemilik Task_Brief ini.",
+      "enum": ["noza", "arka", "weba", "yuka"]
+    },
+    "brief_version": {
+      "type": "string",
+      "description": "Nomor versi dokumen ini, format vN.N (minor) atau vN.0 (mayor/re-slice).",
+      "pattern": "^v[0-9]+\\.[0-9]+$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Tanggal dokumen ini dibuat/diperbarui (WITA, format YYYY-MM-DD)."
+    },
+    "status": {
+      "type": "string",
+      "description": "Status proses Task_Brief ini di jalur Gate 2.",
+      "enum": ["MENUNGGU_GATE2", "DISETUJUI_GATE2", "REVISI", "DELTA_SPRINT_AKTIF"]
+    },
+    "mode": {
+      "type": "string",
+      "description": "STANDARD untuk siklus eksekusi normal, DELTA_SPRINT untuk Task_Brief Level 2 dari Fase 4.",
+      "enum": ["STANDARD", "DELTA_SPRINT"],
+      "default": "STANDARD"
+    },
+    "source_master_brief_version": {
+      "type": "string",
+      "description": "Nomor versi Master_Brief [LOCKED_EXECUTION] sumber potongan ini, untuk jejak QA kecocokan angka.",
+      "pattern": "^v[0-9]+\\.[0-9]+$"
+    },
+    "core_value_proposition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "WAJIB identik persis dengan field yang sama di Task_Brief tiga agent lainnya."
+    },
+    "primary_offer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "WAJIB identik persis dengan field yang sama di Task_Brief tiga agent lainnya."
+    },
+    "language_matrix": {
+      "type": "array",
+      "minItems": 1,
+      "description": "WAJIB identik persis (array yang sama) dengan Task_Brief tiga agent lainnya.",
+      "items": {
+        "type": "object",
+        "required": ["segment", "language", "tone_notes"],
+        "properties": {
+          "segment": {
+            "type": "string",
+            "enum": ["Local_ID", "Expat_Nomad", "Tourist"]
+          },
+          "language": {
+            "type": "string",
+            "description": "Bahasa yang dipakai untuk segmen ini, mis. 'Bahasa Indonesia', 'English'."
+          },
+          "tone_notes": {
+            "type": "string",
+            "description": "Catatan nada/gaya khusus segmen ini dari Master_Brief."
+          }
+        }
+      }
+    },
+    "agent_specific": {
+      "type": "object",
+      "description": "Field khusus sesuai peran agent. Bentuknya berbeda tergantung nilai properti 'agent' (lihat blok allOf di bawah)."
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Daftar asumsi yang diwariskan dari Master_Brief dan belum tervalidasi PM.",
+      "items": {
+        "type": "object",
+        "required": ["item", "needs_validation_by"],
+        "properties": {
+          "item": { "type": "string" },
+          "needs_validation_by": { "type": "string", "const": "PM" }
+        }
+      }
+    },
+    "revision_history": {
+      "type": "array",
+      "description": "Riwayat versi dokumen ini (ditulis di isi file aktif, bukan hanya nama file archive).",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "change"],
+        "properties": {
+          "version": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "change": { "type": "string" }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "agent": { "const": "noza" } } },
+      "then": {
+        "properties": {
+          "agent_specific": {
+            "type": "object",
+            "required": ["channel_names", "funnel_model", "content_quota"],
+            "properties": {
+              "channel_names": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Nama kanal saja dari channel_mix Master_Brief, tanpa angka budget."
+              },
+              "funnel_model": {
+                "type": "string",
+                "enum": ["CTWA", "LP_LEAD", "DIRECT_CHECKOUT"]
+              },
+              "content_quota": {
+                "type": "object",
+                "description": "Jumlah/jenis konten yang perlu diproduksi, mis. {\"video_script\": 12, \"carousel\": 4}."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "agent": { "const": "arka" } } },
+      "then": {
+        "properties": {
+          "agent_specific": {
+            "type": "object",
+            "required": ["channel_mix", "unit_economics", "funnel_tracking"],
+            "properties": {
+              "channel_mix": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["channel", "budget", "target_segment"],
+                  "properties": {
+                    "channel": { "type": "string" },
+                    "budget": { "type": "number", "minimum": 0 },
+                    "target_segment": { "type": "string" }
+                  }
+                }
+              },
+              "unit_economics": {
+                "type": "object",
+                "required": ["net_ad_spend", "cpl_target", "cac_target", "break_even_roas"],
+                "properties": {
+                  "net_ad_spend": { "type": "number", "minimum": 0 },
+                  "cpl_target": { "type": "number", "minimum": 0 },
+                  "cac_target": { "type": "number", "minimum": 0 },
+                  "break_even_roas": { "type": "number", "minimum": 0 }
+                }
+              },
+              "funnel_tracking": {
+                "type": "object",
+                "required": ["funnel_model", "ref_code_prefix"],
+                "properties": {
+                  "funnel_model": {
+                    "type": "string",
+                    "enum": ["CTWA", "LP_LEAD", "DIRECT_CHECKOUT"]
+                  },
+                  "ref_code_prefix": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "agent": { "const": "weba" } } },
+      "then": {
+        "properties": {
+          "agent_specific": {
+            "type": "object",
+            "required": ["funnel_tracking", "assumed_cs_close_rate_pct"],
+            "properties": {
+              "funnel_tracking": {
+                "type": "object",
+                "required": ["funnel_model", "ref_code_prefix"],
+                "properties": {
+                  "funnel_model": {
+                    "type": "string",
+                    "enum": ["CTWA", "LP_LEAD", "DIRECT_CHECKOUT"]
+                  },
+                  "ref_code_prefix": { "type": "string" }
+                }
+              },
+              "assumed_cs_close_rate_pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "agent": { "const": "yuka" } } },
+      "then": {
+        "properties": {
+          "agent_specific": {
+            "type": "object",
+            "required": ["target_segment_geo", "icp_reference"],
+            "properties": {
+              "target_segment_geo": {
+                "type": "string",
+                "description": "Local_ID atau Expat_Nomad - menentukan bahasa konten SEO/GBP."
+              },
+              "icp_reference": {
+                "type": "string",
+                "description": "Ringkasan/rujukan ICP dari Client_Intelligence_Brief Nara."
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
